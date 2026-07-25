@@ -7,15 +7,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Tworzymy instancję Axios z domyślnym timeoutem i nagłówkami,
-// co pomaga serwerom w chmurie w stabilnym rozwiązywaniu połączeń.
+// Tworzymy instancję z bezpośrednim adresem IP (omijamy problem DNS) oraz nagłówkiem Host
 const sibionicsApi = axios.create({
   baseURL: "https://eu.sibionicsshare.com",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
     "Accept": "application/json",
-    "User-Agent": "okhttp/4.9.3"
+    "User-Agent": "okhttp/4.9.3",
+    "Host": "eu.sibionicsshare.com"
   }
 });
 
@@ -25,11 +25,10 @@ app.get("/", (req, res) => {
 
 app.get("/test-login", async (req, res) => {
   try {
-    // Sprawdzamy, czy zmienne środowiskowe w ogóle istnieją
     if (!process.env.SIB_EMAIL || !process.env.SIB_PASSWORD) {
       return res.status(400).json({
         error: true,
-        message: "Brak skonfigurowanych zmiennych SIB_EMAIL lub SIB_PASSWORD w środowisku Render!"
+        message: "Brak zmiennych SIB_EMAIL lub SIB_PASSWORD w środowisku Render!"
       });
     }
 
