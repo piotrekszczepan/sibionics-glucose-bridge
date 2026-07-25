@@ -11,47 +11,56 @@ app.get("/", (req, res) => {
   res.send("Sibionics Bridge działa");
 });
 
-
 app.get("/test-login", async (req, res) => {
-
   try {
-
-    const response = await axios.post(
-      "https://eu.sibionicsshare.com/v1/device/followData",
+    // 1. KROK: Logowanie (poprawny adres /v1/user/login)
+    const loginResponse = await axios.post(
+      "https://eu.sibionicsshare.com/v1/user/login",
       {
         account: process.env.SIB_EMAIL,
         password: process.env.SIB_PASSWORD
       },
       {
-        headers:{
-          "Content-Type":"application/json",
-          "Accept":"application/json",
-          "User-Agent":"okhttp/4.9.3"
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "okhttp/4.9.3"
         }
       }
     );
 
+    const token = loginResponse.data?.data?.token;
+
+    if (!token) {
+      return res.json({ error: true, message: "Brak tokenu w odpowiedzi logowania", data: loginResponse.data });
+    }
+
+    // 2. KROK: Pobieranie danych glukozy przy użyciu uzyskanego tokenu
+    const dataResponse = await axios.get(
+      "https://eu.sibionicsshare.com/v1/device/followData",
+      {
+        headers: {
+          "Authorization": "Bearer " + token,
+          "User-Agent": "okhttp/4.9.3"
+        }
+      }
+    );
 
     res.json({
-      status: response.status,
-      data: response.data
+      status: 200,
+      glucoseData: dataResponse.data
     });
 
-
-  } catch(error){
-
+  } catch (error) {
     res.json({
-      error:true,
-      message:error.message,
-      response:error.response?.data || null,
-      status:error.response?.status || null
+      error: true,
+      message: error.message,
+      response: error.response?.data || null,
+      status: error.response?.status || null
     });
-
   }
-
 });
 
-
-app.listen(PORT,()=>{
- console.log("Server działa");
+app.listen(PORT, () => {
+  console.log("Server działa");
 });
