@@ -7,44 +7,54 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Tworzymy instancję Axios z domyślnym timeoutem i nagłówkami,
+// co pomaga serwerom w chmurie w stabilnym rozwiązywaniu połączeń.
+const sibionicsApi = axios.create({
+  baseURL: "https://eu.sibionicsshare.com",
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "okhttp/4.9.3"
+  }
+});
+
 app.get("/", (req, res) => {
   res.send("Sibionics Bridge działa");
 });
 
 app.get("/test-login", async (req, res) => {
   try {
-    // 1. KROK: Logowanie (poprawny adres /v1/user/login)
-    const loginResponse = await axios.post(
-      "https://eu.sibionicsshare.com/v1/user/login",
-      {
-        account: process.env.SIB_EMAIL,
-        password: process.env.SIB_PASSWORD
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "okhttp/4.9.3"
-        }
-      }
-    );
+    // Sprawdzamy, czy zmienne środowiskowe w ogóle istnieją
+    if (!process.env.SIB_EMAIL || !process.env.SIB_PASSWORD) {
+      return res.status(400).json({
+        error: true,
+        message: "Brak skonfigurowanych zmiennych SIB_EMAIL lub SIB_PASSWORD w środowisku Render!"
+      });
+    }
+
+    // 1. KROK: Logowanie
+    const loginResponse = await sibionicsApi.post("/v1/user/login", {
+      account: process.env.SIB_EMAIL,
+      password: process.env.SIB_PASSWORD
+    });
 
     const token = loginResponse.data?.data?.token;
 
     if (!token) {
-      return res.json({ error: true, message: "Brak tokenu w odpowiedzi logowania", data: loginResponse.data });
+      return res.json({ 
+        error: true, 
+        message: "Brak tokenu w odpowiedzi logowania", 
+        data: loginResponse.data 
+      });
     }
 
-    // 2. KROK: Pobieranie danych glukozy przy użyciu uzyskanego tokenu
-    const dataResponse = await axios.get(
-      "https://eu.sibionicsshare.com/v1/device/followData",
-      {
-        headers: {
-          "Authorization": "Bearer " + token,
-          "User-Agent": "okhttp/4.9.3"
-        }
+    // 2. KROK: Pobieranie danych glukozy
+    const dataResponse = await sibionicsApi.get("/v1/device/followData", {
+      headers: {
+        "Authorization": "Bearer " + token
       }
-    );
+    });
 
     res.json({
       status: 200,
@@ -62,5 +72,5 @@ app.get("/test-login", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("Server działa");
+  console.log("Server działa na porcie " + PORT);
 });
