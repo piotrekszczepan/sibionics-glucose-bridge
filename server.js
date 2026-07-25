@@ -17,7 +17,7 @@ app.get("/test-login", async (req, res) => {
   try {
 
     const response = await axios.post(
-      "https://eu.sibionicsshare.com/v1/user/login",
+      "https://eu.sibionicsshare.com/v1/device/followData",
       {
         account: process.env.SIB_EMAIL,
         password: process.env.SIB_PASSWORD
